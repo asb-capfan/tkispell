@@ -1,15 +1,11 @@
 #!/usr/local/bin/perl
 
-# RCS ID
-# $Id: ispell,v 0.11 2001/09/23 23:36:16 kiesling Exp $
+# $Id: tkispell,v 0.13 2001/09/24 11:49:01 kiesling Exp $
 
 use Tk;
 use Tk::Label;
 use Tk::Dialog;
 use Tk::SimpleFileSelect;
-
-use IPC::Open3;
-use Fcntl;
 
 # 
 # Options - edit these for your system.
@@ -26,72 +22,56 @@ my $ispell_prog = '/usr/local/bin/ispell';
 #  if your personal dictionary is not in your home directory.
 my $personal_dictionary = $ENV{HOME}.'/.ispell_english';
 
-my $infilename = 'File: None';
+my $infilename = '';
 my $buttonwidth = 15;
 my ($matchindex, $matchlength);
 my $lastmatchindex = '1.0';
 
-
-my ($cw,$b,,$fl,$fcl,$cl,$lb,$f,$f1,$wordcontext,$l,$e);
-my (@misspelledlist,@guesslist,@replacementlist,@addlist);
+my ($cw,$b,$fl,$fcl,$cl,$lb,$f,$f1,$l,$e);
+my (@misspelledlist,@replacementlist,@addlist);
 my $nextmiss = 0;
 
 sub mainwindow {
     $cw = new MainWindow ( -title => 'Spell Check' );
     $fl = $cw -> Label ( -textvariable => \$infilename,
-			 -font => $font,
-			 -justify => 'left',
-			 -relief => 'groove');
+	 -font => $font, -justify => 'left', -relief => 'groove');
     $fl -> grid (-row => 1, -column => 1, -columnspan => 3,
 		 -sticky => 'ew', -padx => 5, -pady => 5);
     $cl = $cw -> Scrolled ( 'Text', -height => 3,
-			    -wrap => 'none',
-			    -font => $font,
-			    -relief => 'sunken',
-			    -scrollbars => 'se');
+         -wrap => 'none', -font => $font, -relief => 'sunken',
+         -scrollbars => 'se');
     $cl -> Subwidget('xscrollbar') -> configure( -width => 10 );
     $cl -> Subwidget('yscrollbar') -> configure( -width => 10 );
     $cl -> grid (-row => 3, -column => 1, -columnspan => 3,
 		 -sticky => 'ew', -padx => 5, -pady => 5);
     $cw -> Advertise ('text' => $cl);
-
     $lb = $cw -> Scrolled ('Listbox',
-			   -font => $font,
-			   -scrollbars => 'osoe');
+			   -font => $font, -scrollbars => 'osoe');
     $lb -> grid (-row => 4, -column => 1, -columnspan => 2,
 		 -padx => 5, -pady => 5, -sticky => 'ew');
     $cw -> Advertise ('list' => $lb);
-
     $f = $cw -> Frame (-container => 0);
     $f -> grid (-row => 4, -column => 3);
 
     $b = $cw -> Button (-text => 'Accept',
-			-command => sub {&checknext},
-			-width => $buttonwidth,
-			-font => $font);
+	-command => sub {&checknext}, -width => $buttonwidth,
+	-font => $font);
     $b -> grid (-row => 1, -column => 1, -padx => 5, -pady => 5,
 		-in => $f, -sticky => 'w');
-    $b = $cw -> Button (-text => 'Add',
-			-command => sub {&addword},
-			-width => $buttonwidth,
-			-font => $font);
+    $b = $cw -> Button (-text => 'Add',	-command => sub {&addword},
+			-width => $buttonwidth, -font => $font);
     $b -> grid (-row => 2, -column => 1, -padx => 5, -pady => 5,
 		-in => $f, -sticky => 'w');
-    $b = $cw -> Button (-text => 'Replace',
-			-command => sub{&replace},
-			-width => $buttonwidth,
-			-font => $font);
+    $b = $cw -> Button (-text => 'Replace', -command => sub{&replace},
+			-width => $buttonwidth,	-font => $font);
     $b -> grid (-row => 3, -column => 1, -padx => 5, -pady => 5,
 		-in => $f, -sticky => 'w');
-    $b = $cw -> Button (-text => 'Replace All',
-			-command => sub {&replaceall},
-			-width => $buttonwidth,
-			-font => $font);
+    $b = $cw -> Button (-text => 'Replace All',	-command => sub {&replaceall},
+			-width => $buttonwidth,	-font => $font);
     $b -> grid (-row => 4, -column => 1, -padx => 5, -pady => 5,
 		-in => $f, -sticky => 'w');
 
-    $l = $cw -> Label (-text => 'Replace with:',
-		       -font => $font,
+    $l = $cw -> Label (-text => 'Replace with:', -font => $font,
 		       -width => $buttonwidth);
     $l -> grid (-row => 5, -column => 1, -padx => 5, # -pady => 5,
 		-in => $f, -sticky => 'w' );
@@ -99,49 +79,38 @@ sub mainwindow {
     $e -> grid (-row => 6, -column => 1, -padx => 5, # -pady => 5,
 		-in => $f, -sticky => 'ew');
     $cw -> Advertise ('replaceentry' => $e);
-
     $lb -> bind ('<Button-1>', 
 		 sub { $e->delete (0,'end');
 		       $e->insert(0, $lb->get ($lb->curselection))});
-
     $f2 = $cw -> Frame (-container => 0);
     $f2 -> grid (-row => 5, -column => 1, -columnspan => 4, -sticky => 'ew');
-
-    $b = $cw -> Button (-text => 'Check',
-			-command => sub {&checkfirst},
-			-width => $buttonwidth,
-			-font => $font);
+    $b = $cw -> Button (-text => 'Check', -command => sub {&checkfirst},
+			-width => $buttonwidth, -font => $font);
     $b -> grid (-row => 5, -column => 1, -padx => 5, -pady => 5,
 		-sticky => 'ew', -in => $f2);
-    $b = $cw -> Button (-text => 'Select File...',
-			-command => sub {&selectfile},
-			-width => $buttonwidth,
-			-font => $font);
+    $b = $cw -> Button (-text => 'Select File...', 
+                -command => sub {&selectfile},-width => $buttonwidth,
+		-font => $font);
     $b -> grid (-row => 5, -column => 2, -padx => 5, -pady => 5,
 		-sticky => 'ew', -in => $f2);
-    $b = $cw -> Button (-text => 'Close',
-                        -command => sub{&save_and_exit},
-			-width => $buttonwidth,
-			-font => $font);
+    $b = $cw -> Button (-text => 'Close', -command => sub{&save_and_exit},
+			-width => $buttonwidth,	-font => $font);
     $b -> grid (-row => 5, -column => 3, -padx => 5, -pady => 5,
 		-sticky => 'ew', -in => $f2);
 }
 
 sub save_and_exit {
     my $t = $cw -> Subwidget ('text');
-    my $fn = $infilename;
-    $fn =~ s/File: //;
     my $d = $cw -> Dialog ( -title => 'Save File',
-			    -text => "Save $fn?\nOriginal file will be saved as $fn.bak.",
-			    -bitmap => 'question',
-			    -font => $font,
+			    -text => "Save $infilename?\nOriginal file will be saved as $infilename.bak.",
+			    -bitmap => 'question', -font => $font,
 			    -buttons => [qw/Ok Cancel/],
 			    -default_button => 'Ok' );
     my $resp = $d -> Show;
     $cw -> Busy;
     if ($resp =~ /Ok/) {
-	system ('mv', $fn, "$fn.bak");
-	open OUT, "+>>$fn" or die "Couldn't overwrite old $fn: $!\n";
+	system ('mv', $infilename, "$infilename.bak");
+	open OUT, "+>>$infilename" or die "Couldn't overwrite old $infilename: $!\n";
 	my $text = $t -> get ('1.0', 'end');
 	print OUT $text;
 	close OUT;
@@ -149,8 +118,7 @@ sub save_and_exit {
     $cw -> Unbusy;
     $d = $cw -> Dialog (-title => 'Add Words',
 			-text => 'Save corrected words to your personal dictionary?',
-			-bitmap => 'question',
-			-font => $font,
+			-bitmap => 'question', -font => $font,
 			-buttons => [qw/Ok Cancel/],
 			-default_button => 'Ok');
     $resp = $d -> Show;
@@ -179,35 +147,24 @@ sub filenotfound {
 			     -bitmap => 'error',
 			     -font => $font);
     $err -> Show;
-    return;
 }
 
 sub selectfile {
     my $d = $cw -> SimpleFileSelect;
-    my $fn = $d -> Show;
-    return &filenotfound ($fn) if (length $fn and (not -f $fn));
-    if (defined $fn and length $fn) {
-	$infilename = "File: $fn";
-    } else {
-	$infilename = 'File: None';
-    }
+    my $infilename = $d -> Show;
+    return &filenotfound ($infilename) if 
+	(length $infilename and (not -f $infilename));
 }
 
 sub openfile {
     my $t = $cw -> Subwidget ('text');
-    my $fn = $infilename;
-    $fn =~ s/File: //;
-    open IN, $fn or (&filenotfound ($fn) && return);
-    while (defined ($inline=<IN>)) {
-	$t -> insert ('end', $inline);
-    }
+    open IN, $infilename or 
+	(&filenotfound ($infilename) && return);
+    while (defined ($inline=<IN>)) {$t -> insert ('end', $inline)}
     close IN;
 }
 
 sub checkfirst {
-    my ($misspelling,$inline,$fn);
-    $fn = $infilename;
-    $fn =~ s/File: //;
     my $t = $cw -> Subwidget ('text');
     &get_misspellings;
     &guesses;
@@ -225,41 +182,32 @@ sub checkfirst {
 sub checknext {
     my $t = $cw -> Subwidget ('text');
     $t -> tagRemove ('sel', '1.0', 'end');
-    $lastmatchindex = $matchindex;
-    $nextmiss++;
-    # No more misspelled words!
-    return if $nextmiss >= $#misspelledlist;
-    # Skip a word that has already been added to personal
-    # dictionary list.
-    if (grep /$misspelledlist[$nextmiss]/, @addlist) {
+    return if ++$nextmiss >= $#misspelledlist;
+    if (grep /$misspelledlist[$nextmiss]/, @addlist) { # skip if added
 	&checknext;
 	return;
     }
-    $matchindex = 
-	$t -> search (-forwards, -count => \$matchlength,
-		      $misspelledlist[$nextmiss],
-		      $lastmatchindex,'end');
+    $matchindex = $t -> search (-forwards, -count => \$matchlength,
+		     $misspelledlist[$nextmiss], $lastmatchindex,'end');
+    return unless length $matchindex;
     $t -> markSet ('insert', $matchindex);
-    $t -> tagAdd ('sel', $matchindex, 
-		  "$matchindex + $matchlength chars");
+    $t -> tagAdd ('sel', $matchindex, "$matchindex + $matchlength chars");
     $t -> see ($matchindex);
+    my ($mrow,$mcol) = split /\./, $matchindex;
+    my $ncol = $mcol + length $misspelledlist[$nextmiss];
+    $lastmatchindex = "$mrow.$ncol";
     &show_guesses;
     &misspelled_replace;
 }
 
 sub misspelled_replace {
-    my $t = $cw -> Subwidget ('text');
-    my $e = $cw -> Subwidget ('replaceentry');
-    my $misspelled = &gettextselection;
-    $e -> delete (0, 'end');
-    $e -> insert (0, $misspelled);
+    $cw -> Subwidget ('replaceentry') -> delete (0, 'end');
+    $cw -> Subwidget ('replaceentry') -> insert (0, &gettextselection);
 }
 
 sub gettextselection {
-    my $t = $cw -> Subwidget ('text');
-    my $selectedword = $t -> get ($matchindex,
-	  "$matchindex + $matchlength chars");
-    return $selectedword;
+    return $cw -> Subwidget ('text') -> 
+	get ($matchindex, "$matchindex + $matchlength chars");
 }
 
 sub replace {
@@ -284,9 +232,8 @@ sub replaceall {
     my $eindex = $t -> index('end');
     $lastindex = '1.0';
     while (1) {
-	$mindex = 
-	    $t -> search (-forwards, -count => \$mlength, 
-			  $misspelled,$lastindex,'end');
+	$mindex = $t -> search (-forwards, -count => \$mlength, 
+				$misspelled,$lastindex,'end');
 	last unless length $mindex;
 	$t -> delete ($mindex, "$mindex + $mlength chars");
 	$t -> insert ($mindex, $replacement);
@@ -303,13 +250,9 @@ sub replaceall {
 
 sub guesses {
     $cw -> Busy;
-    my $fn = $infilename;
-    $fn =~ s/File: //;
-    @guesslist = `$ispell_prog -a <$fn 2>&1`;
-    shift @guesslist;
-    foreach (@guesslist) {
-	chomp;
-    }
+    @guesslist = `$ispell_prog -a <$infilename 2>&1`;
+    shift @guesslist;  # remove the ispell id
+    chomp foreach (@guesslist);
     $cw -> Unbusy;
 }
 
@@ -322,17 +265,12 @@ sub show_guesses {
     my $replacements = $wordguesses[0];
     $replacements =~ s/.*\: //;
     my @replacelist = split /, /, $replacements;
-    foreach (@replacelist) {
-	$lb -> insert ('end', $_);
-    }
+    $lb -> insert ('end', $_) foreach (@replacelist);
 }
 
 sub get_misspellings {
-    my $fn = $infilename;
-    my $line;
-    $fn =~ s/File\: //;
     $cw -> Busy (-recurse => 1);
-    @misspelledlist = `$ispell_prog -l <$fn`;
+    @misspelledlist = `$ispell_prog -l <$infilename`;
     chomp foreach (@misspelledlist);
     $cw -> Unbusy (-recurse => 0);
 }
@@ -340,7 +278,7 @@ sub get_misspellings {
 &mainwindow;
 
 if (defined $ARGV[0] and length $ARGV[0]) {
-    $infilename = 'File: '.$ARGV[0];
+    $infilename = $ARGV[0];
     &openfile;
 }
 

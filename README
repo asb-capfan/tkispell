@@ -1,4 +1,4 @@
-Tkispell Version 0.11
+Tkispell Version 0.13
 
 Tkispell is a GUI interface to the GNU ispell program written
 in Perl and the Perl/Tk widget libraries.
@@ -103,3 +103,9 @@ extension if you click on "Ok" in the dialog box.  Then tkispell
 will ask if you want to add the corrected words to your personal
 dictionary.  Click on "Ok" or "Cancel."
 
+LICENSE
+
+Tkispell and Tk::SimpleFileSelect are written by 
+rkiesling@mainmatter.com and distributed under the terms
+of the Perl Artistic License.  Please refer to the file
+"Artistic" for details.
