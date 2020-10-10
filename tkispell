@@ -2,8 +2,10 @@
 
 use Tk;
 use Tk::widgets qw(Label Dialog SimpleFileSelect Balloon);
+use English qw' -no_match_vars ';
+use File::Copy;
 
-$VERSION=0.17;
+our $VERSION=0.17;
 
 #
 # Default font - edit this for your system.
@@ -11,20 +13,55 @@ $VERSION=0.17;
 my $fn = '*-helvetica-medium-r-*-*-12-*'; # Widget font
 
 my $lang = $ENV{LANG};
-if ($lang =~ /^C$/ || ! defined ($lang)) {$lang = 'default'; }
-my $hdict = $ENV{HOME}."/.ispell_$lang"; # Personal dictionary. 
+if( !defined $lang or $lang =~ /^C$/ ) {
+    $lang = 'default';
+}
 
-my $ispell_prog = `which ispell`;  
-chomp $ispell_prog;
+#my $hdict = $ENV{HOME}."/.ispell_$lang"; # Personal dictionary. 
+my $hdict;
+my $ispell_prog;
+
+if( $OSNAME eq 'MSWin32' ) {
+    # XXX: better use File::HomeDir
+    $hdict = $ENV{HOMEPATH}."/.ispell_$lang"; # Personal dictionary.
+    
+    # look for aspell first, as it the successor of ispell
+    $ispell_prog = `where aspell`;
+    chomp $ispell_prog;
+    
+    # fallback: if no aspell is found, look for ispell
+    if( !defined $ispell_prog or $ispell_prog eq '' ) {
+        $ispell_prog = `where ispell`;
+        chomp $ispell_prog;
+    }
+    
+}else{
+    $hdict = $ENV{HOME}."/.ispell_$lang"; # Personal dictionary.
+    
+    $ispell_prog = `which aspell`;
+    chomp $ispell_prog;
+    
+    # fallback: if no aspell is found, look for ispell
+    if( !defined $ispell_prog or $ispell_prog eq '' ) {
+        $ispell_prog = `where ispell`;
+        chomp $ispell_prog;
+    }
+}
+
+if( !defined $ispell_prog or $ispell_prog eq '' ) {
+    warn "Did not find aspell or ispell. The check will not work. Please install aspell or ispell first and make it available in your PATH.";
+}
+
+
 my ($cw, $b1, @misspelledlist, @replacementlist, @addlist, $midx);
 my $ifname = '';
 my $lastmatchindex = '1.0';
 my $matchlength = 0;
 my $nextmiss = 0;
-my $scriptname = $O;
+my $scriptname = $0;
 
 sub mainwindow {
-    $cw = new MainWindow (-title => $O);
+    $cw = Tk::MainWindow->new(-title => $scriptname);
     $b1 = $cw -> Balloon ();
     @opts = (-padx => 5, -pady => 5);
     my $cl = $cw->Scrolled ('Text', -height => 3, -wrap => 'none', 
@@ -42,17 +79,32 @@ sub mainwindow {
 			-width => 15, -font => $fn);
     $b->grid(-row => 1, -column => 1, -in => $f, -sticky => 'w', @opts);
     $b1 -> attach ($b, -balloonmsg => 'Accept the misspelled word.');
-    $b = $cw->Button(-text => 'Add', -command => sub {push 
-       @addlist, (gettextselection ()); checknext ()}, 
-		     -width => 15, -font => $fn);
+    $b = $cw->Button(
+        -text => 'Add',
+        -command => sub {
+            return unless defined $midx;
+            push @addlist, (gettextselection());
+            checknext();
+        }, 
+        -width => 15,
+        -font => $fn,
+    );
     $b->grid(-row => 2, -column => 1, -in => $f, -sticky => 'w', @opts);
     $b1 -> attach ($b, -balloonmsg => 'Add the misspelled wordto dictionary.');
     $b = $cw->Button(-text => 'Replace', -command => 
       sub{replace () && checknext ()}, -width => 15, -font => $fn);
     $b1 -> attach ($b, -balloonmsg => 'Replace this misspelling.');
     $b->grid(-row => 3, -column => 1, -in => $f, -sticky => 'w', @opts);
-    $b = $cw->Button(-text => 'Replace All', -command => 
-      sub {replaceall () ; checknext ()}, -width => 15, -font => $fn);
+    $b = $cw->Button(
+        -text => 'Replace All',
+        -command => sub {
+            return unless defined $midx;
+            replaceall();
+            checknext();
+        },
+        -width => 15,
+        -font => $fn,
+    );
     $b->grid(-row => 4, -column => 1, -in => $f, -sticky => 'w', @opts);
     $b1 -> attach ($b, -balloonmsg => 'Replace all occurrences of misspelling.');
     my $l = $cw->Label (-text => 'Replace with:', -font => $fn, -width => 15);
@@ -61,8 +113,13 @@ sub mainwindow {
     $e->grid(-row => 6, -column => 1, -padx => 5, -in => $f, -sticky => 'ew');
     $cw->Advertise ('replaceentry' => $e);
     $b1 -> attach ($e, -balloonmsg => 'Edit and replace the misspelling.');
-    $lb -> bind ('<Button-1>', sub { $e->delete (0,'end');
-		       $e->insert(0, $lb->get ($lb->curselection))});
+    $lb -> bind ('<Button-1>', sub {
+        if( !defined $lb->curselection or $lb->curselection eq '' ) {
+            return;
+        }
+        $e->delete (0,'end');
+		$e->insert(0, $lb->get ($lb->curselection));
+    });
     $f2 = $cw->Frame(-container => 0);
     $f2->grid (-row => 5, -column => 1, -columnspan => 4, -sticky => 'ew');
     $b = $cw->Button(-text => 'Check...', -command => sub {checkfirst ()},
@@ -90,8 +147,8 @@ sub save_and_exit {
 	$d -> Subwidget ('B_No') -> configure (-font => $fn);
 	if (($d->Show) =~ /Yes/) {
 	    $cw -> Busy;
-	    system ('mv', $ifname, "$ifname.bak");
-	    open OUT, "+>>$ifname" or die "Couldn't overwrite old $ifname: $!\n";
+        move($ifname, "$ifname.bak");
+	    open OUT, "+>>$ifname" or die "Couldn't overwrite old $ifname: $OS_ERROR\n";
 	    print OUT ($cw -> Subwidget ('text') -> get ('1.0', 'end'));
 	    close OUT;
 	    $cw -> Unbusy;
@@ -106,7 +163,7 @@ sub save_and_exit {
 	$d -> Subwidget ('B_No') -> configure (-font => $fn);
 	if (($d->Show) =~ /Yes/) {
 	  $cw -> Busy;
-	  open OUT, ">>$hdict" or  die "Couldn't add words to $hdict: $!\n";
+	  open OUT, ">>$hdict" or  die "Couldn't add words to $hdict: $OS_ERROR\n";
 	  foreach (@addlist) { print OUT "$_\n"}
 	  close OUT;
 	  $cw -> Unbusy;
@@ -129,7 +186,9 @@ sub selectfile {
 
 sub openfile {
     open IN, $ifname or (filenotfound ($ifname) && return);
-    while(defined ($l=<IN>)){$cw->Subwidget('text')->insert('end',$l)}
+    while( my $l = <IN> ){
+        $cw->Subwidget('text')->insert('end',$l);
+    }
     $cw -> configure (-title => "$ifname");
     close IN;
 }
@@ -222,7 +281,7 @@ sub replaceall {
 sub guesses {
     $cw -> Busy;
     return if ! $ifname;
-    @guesslist = qx|$ispell_prog -a \<$ifname 2\>&1|;
+    @guesslist = qx|"$ispell_prog" -a \<$ifname 2\>&1|;
     shift @guesslist;  # remove the ispell id
     chomp foreach (@guesslist);
     $cw -> Unbusy;
@@ -242,15 +301,15 @@ sub show_guesses {
 sub get_misspellings {
     return if ! $ifname;
     $cw -> Busy (-recurse => 1);
-    @misspelledlist = qx|$ispell_prog -l \<$ifname|;
+    @misspelledlist = qx|"$ispell_prog" -l \<$ifname|;
     if ($#misspelledlist >= 0) {chomp foreach (@misspelledlist);}
     $cw -> Unbusy (-recurse => 0);
 }
 
-
 mainwindow ();
 (($ifname=$ARGV[0]) && openfile()) if(defined $ARGV[0] and length $ARGV[0]);
-MainLoop;
+
+$cw->MainLoop;
 
 __DATA__;
 
