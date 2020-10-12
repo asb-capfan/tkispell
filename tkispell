@@ -2,10 +2,10 @@
 
 use Tk;
 use Tk::widgets qw(Label Dialog SimpleFileSelect Balloon);
-use English qw' -no_match_vars ';
+use English qw'-no_match_vars';
 use File::Copy;
 
-our $VERSION=0.17;
+our $VERSION = 0.17;
 
 #
 # Default font - edit this for your system.
@@ -62,26 +62,37 @@ my $scriptname = $0;
 
 sub mainwindow {
     $cw = Tk::MainWindow->new(-title => $scriptname);
-    $b1 = $cw->Balloon ();
+    $b1 = $cw->Balloon();
     @opts = (-padx => 5, -pady => 5);
-    my $cl = $cw->Scrolled ('Text', -height => 3, -wrap => 'none', 
-	   -font => $fn, -scrollbars => 'se');
-    $b1->attach ($cl, -balloonmsg => 'Misspelled text.');
+    
+    my $cl = $cw->Scrolled('Text',
+        -height => 3,
+        -wrap => 'none', 
+        -font => $fn,
+        -scrollbars => 'se',
+    );
+    $b1->attach($cl, -balloonmsg => 'Misspelled text.');
     $cl->Subwidget($_)->configure(-width=>10) foreach('xscrollbar','yscrollbar'); 
-    $cl->grid (-row => 2,-column => 1,-columnspan => 3,-sticky => 'ew',@opts);
-    $cw->Advertise ('text' => $cl);
-    my $lb = $cw->Scrolled ('Listbox', -font => $fn, -scrollbars => 'osoe');
+    $cl->grid(-row => 2,-column => 1,-columnspan => 3,-sticky => 'ew',@opts);
+    $cw->Advertise('text' => $cl);
+    
+    my $lb = $cw->Scrolled('Listbox', -font => $fn, -scrollbars => 'osoe');
     $lb->grid(-row => 3,-column => 1,-columnspan => 2,-sticky => 'ew',@opts);
     $cw->Advertise('list' => $lb);
-    $b1->attach ($lb, -balloonmsg => 'Selection of replacement words.');
+    $b1->attach($lb, -balloonmsg => 'Selection of replacement words.');
+    
     my $f = $cw->Frame(-container => 0)->grid(-row => 3,-column => 3);
-    my $b = $cw->Button (-text => 'Accept',-command => sub {checknext ()},
-			-width => 15, -font => $fn);
+    my $b = $cw->Button(
+        -text => 'Accept',
+        -command => sub{ checknext(); },
+		-width => 15,
+        -font => $fn,
+    );
     $b->grid(-row => 1, -column => 1, -in => $f, -sticky => 'w', @opts);
-    $b1->attach ($b, -balloonmsg => 'Accept the misspelled word.');
+    $b1->attach($b, -balloonmsg => 'Accept the misspelled word.');
     $b = $cw->Button(
         -text => 'Add',
-        -command => sub {
+        -command => sub{
             return unless defined $midx;
             push @addlist, (gettextselection());
             checknext();
@@ -90,14 +101,20 @@ sub mainwindow {
         -font => $fn,
     );
     $b->grid(-row => 2, -column => 1, -in => $f, -sticky => 'w', @opts);
-    $b1->attach ($b, -balloonmsg => 'Add the misspelled wordto dictionary.');
-    $b = $cw->Button(-text => 'Replace', -command => 
-      sub{replace () && checknext ()}, -width => 15, -font => $fn);
-    $b1->attach ($b, -balloonmsg => 'Replace this misspelling.');
+    $b1->attach($b, -balloonmsg => 'Add the misspelled wordto dictionary.');
+    $b = $cw->Button(
+        -text => 'Replace',
+        -command => sub{
+            replace() && checknext();
+        },
+        -width => 15,
+        -font => $fn,
+    );
+    $b1->attach($b, -balloonmsg => 'Replace this misspelling.');
     $b->grid(-row => 3, -column => 1, -in => $f, -sticky => 'w', @opts);
     $b = $cw->Button(
         -text => 'Replace All',
-        -command => sub {
+        -command => sub{
             return unless defined $midx;
             replaceall();
             checknext();
@@ -106,65 +123,89 @@ sub mainwindow {
         -font => $fn,
     );
     $b->grid(-row => 4, -column => 1, -in => $f, -sticky => 'w', @opts);
-    $b1->attach ($b, -balloonmsg => 'Replace all occurrences of misspelling.');
-    my $l = $cw->Label (-text => 'Replace with:', -font => $fn, -width => 15);
+    $b1->attach($b, -balloonmsg => 'Replace all occurrences of misspelling.');
+    
+    my $l = $cw->Label(-text => 'Replace with:', -font => $fn, -width => 15);
     $l->grid(-row => 5, -column => 1, -padx => 5, -in => $f, -sticky => 'w');
-    my $e = $cw->Entry (-width => 20);
+    
+    my $e = $cw->Entry(-width => 20);
     $e->grid(-row => 6, -column => 1, -padx => 5, -in => $f, -sticky => 'ew');
-    $cw->Advertise ('replaceentry' => $e);
-    $b1->attach ($e, -balloonmsg => 'Edit and replace the misspelling.');
-    $lb->bind ('<Button-1>', sub {
+    $cw->Advertise('replaceentry' => $e);
+    $b1->attach($e, -balloonmsg => 'Edit and replace the misspelling.');
+    $lb->bind('<Button-1>', sub{
         if( !defined $lb->curselection or $lb->curselection eq '' ) {
             return;
         }
         $e->delete (0,'end');
-		$e->insert(0, $lb->get ($lb->curselection));
+		$e->insert(0, $lb->get($lb->curselection));
     });
     $f2 = $cw->Frame(-container => 0);
-    $f2->grid (-row => 5, -column => 1, -columnspan => 4, -sticky => 'ew');
-    $b = $cw->Button(-text => 'Check...', -command => sub {checkfirst ()},
-			-width => 15, -font => $fn);
-    $b1->attach ($b, -balloonmsg => 'Begin spell check.');
-    $b->grid (-row => 5, -column => 1, -sticky => 'ew', -in => $f2, @opts);
-    $b = $cw->Button (-text => 'Select File...', 
-         -command => sub {selectfile ()},-width => 15, -font => $fn);
-    $b1->attach ($b, -balloonmsg => 'Select file to spell check.');
-    $b->grid (-row => 5, -column => 2, -sticky => 'ew', -in => $f2, @opts);
-    $b = $cw->Button (-text => 'Dismiss', -command => sub{save_and_exit ()},
-			-width => 15, -font => $fn);
-    $b->grid (-row => 5, -column => 3, -sticky => 'ew', -in => $f2, @opts);
-    $b1->attach ($b, -balloonmsg => 'Exit the program.');
+    $f2->grid(-row => 5, -column => 1, -columnspan => 4, -sticky => 'ew');
+    $b = $cw->Button(
+        -text => 'Check...',
+        -command => sub{ checkfirst(); },
+		-width => 15,
+        -font => $fn,
+    );
+    $b1->attach($b, -balloonmsg => 'Begin spell check.');
+    $b->grid(-row => 5, -column => 1, -sticky => 'ew', -in => $f2, @opts);
+    $b = $cw->Button(
+        -text => 'Select File...', 
+        -command => sub{ selectfile(); },
+        -width => 15,
+        -font => $fn,
+    );
+    $b1->attach($b, -balloonmsg => 'Select file to spell check.');
+    $b->grid(-row => 5, -column => 2, -sticky => 'ew', -in => $f2, @opts);
+    $b = $cw->Button(
+        -text => 'Dismiss',
+        -command => sub{ save_and_exit(); },
+		-width => 15,
+        -font => $fn,
+    );
+    $b->grid(-row => 5, -column => 3, -sticky => 'ew', -in => $f2, @opts);
+    $b1->attach($b, -balloonmsg => 'Exit the program.');
 }
 
 sub save_and_exit {
     $cw->WmDeleteWindow if (defined ($ifname) && ! length ($ifname));
     if ($#misspelledlist >= 0) {
-        my $d = $cw->Dialog (-title => 'Save File',
-               -text => "Save $ifname?\nOriginal file will be saved as $ifname.bak.", 
-               -bitmap => 'question', -font => $fn, -buttons => [qw/Yes No/], 
-               -default_button => 'Yes');
-        $d->Subwidget ('B_Yes')->configure (-font => $fn);
-        $d->Subwidget ('B_No')->configure (-font => $fn);
+        my $d = $cw->Dialog(
+            -title => 'Save File',
+            -text => "Save $ifname?\nOriginal file will be saved as $ifname.bak.", 
+            -bitmap => 'question',
+            -font => $fn,
+            -buttons => [qw/Yes No/], 
+            -default_button => 'Yes',
+        );
+        $d->Subwidget('B_Yes')->configure(-font => $fn);
+        $d->Subwidget('B_No')->configure(-font => $fn);
         if (($d->Show) =~ /Yes/) {
             $cw->Busy;
             move($ifname, "$ifname.bak");
             open OUT, "+>>$ifname" or die "Couldn't overwrite old $ifname: $OS_ERROR\n";
-            print OUT ($cw->Subwidget ('text')->get ('1.0', 'end'));
+            print OUT ($cw->Subwidget('text')->get('1.0', 'end'));
             close OUT;
             $cw->Unbusy;
         }
     }
     if ($#addlist >= 0) {
-        $d = $cw->Dialog (-title => 'Add Words',
+        $d = $cw->Dialog(
+            -title => 'Add Words',
             -text => 'Save new words to your personal dictionary?',
-            -bitmap => 'question', -font => $fn,
-            -buttons => [qw/Yes No/], -default_button => 'Yes');
-        $d->Subwidget ('B_Yes')->configure (-font => $fn);
-        $d->Subwidget ('B_No')->configure (-font => $fn);
+            -bitmap => 'question',
+            -font => $fn,
+            -buttons => [qw/Yes No/],
+            -default_button => 'Yes',
+        );
+        $d->Subwidget('B_Yes')->configure(-font => $fn);
+        $d->Subwidget('B_No')->configure(-font => $fn);
         if (($d->Show) =~ /Yes/) {
             $cw->Busy;
             open OUT, ">>$hdict" or  die "Couldn't add words to $hdict: $OS_ERROR\n";
-            foreach (@addlist) { print OUT "$_\n"}
+            foreach (@addlist) {
+                print OUT "$_\n";
+            }
             close OUT;
             $cw->Unbusy;
         }
@@ -173,15 +214,19 @@ sub save_and_exit {
 }
 
 sub filenotfound {
-    $cw->Dialog (-title => 'File Not Found', -text => "Could not open @_",
-		   -bitmap => 'error', -font => $fn)->Show;
+    $cw->Dialog(
+        -title => 'File Not Found',
+        -text => "Could not open @_",
+		-bitmap => 'error',
+        -font => $fn,
+    )->Show;
 }
 
 sub selectfile {
     my $d = $cw->SimpleFileSelect;
     $ifname = $d->Show;
     return filenotfound ($ifname) if (length $ifname and (not -f $ifname));
-    openfile ();
+    openfile();
 }
 
 sub openfile {
@@ -189,7 +234,7 @@ sub openfile {
     while( my $l = <IN> ){
         $cw->Subwidget('text')->insert('end',$l);
     }
-    $cw->configure (-title => "$ifname");
+    $cw->configure(-title => "$ifname");
     close IN;
 }
 
@@ -207,29 +252,33 @@ sub adjust_index {
 }
 
 sub checkfirst {
-    get_misspellings ();
-    if ($#misspelledlist < 0) {	complete_notify (); return 0;}
-    guesses ();
+    get_misspellings();
+    if ($#misspelledlist < 0) {
+        complete_notify();
+        return 0;
+    }
+    guesses();
     my $term = $misspelledlist[0];
-    $midx = $cw->Subwidget('text')->search 
-	(-forwards, -count => \$matchlength, $term, $lastmatchindex);
+    $midx = $cw->Subwidget('text')->search(-forwards, -count => \$matchlength, $term, $lastmatchindex);
     $lastmatchindex = adjust_index ($midx, $term);
-    addtexttags ();
-    show_guesses ();
-    misspelled_replace ();
+    addtexttags();
+    show_guesses();
+    misspelled_replace();
 }
 
 sub checknext {
     $cw->Subwidget('text')->tagRemove ('sel', '1.0', 'end');
-    if (++$nextmiss >= $#misspelledlist) {complete_notify ();return 0; }
-    (checknext () && return 1) if grep /$misspelledlist[$nextmiss]/, @addlist;
-    $midx = ($cw->Subwidget('text')->search (-forwards,-count=>\$matchlength,
-        $misspelledlist[$nextmiss],$lastmatchindex,'end'));
+    if (++$nextmiss >= $#misspelledlist) {
+        complete_notify();
+        return 0;
+    }
+    (checknext() && return 1) if grep /$misspelledlist[$nextmiss]/, @addlist;
+    $midx = ($cw->Subwidget('text')->search (-forwards,-count=>\$matchlength, $misspelledlist[$nextmiss],$lastmatchindex,'end'));
     if ((defined $midx) && (length $midx)) {
-	addtexttags ();
-	$lastmatchindex=adjust_index($midx,$misspelledlist[$nextmiss]);
-	show_guesses ();
-	misspelled_replace ();
+        addtexttags();
+        $lastmatchindex = adjust_index($midx,$misspelledlist[$nextmiss]);
+        show_guesses();
+        misspelled_replace();
     }
     return 1;
 }
@@ -237,18 +286,18 @@ sub checknext {
 sub complete_notify {
     return if ! $ifname;
     $cw->Subwidget('list')->delete (0, 'end');
-    $cw->Subwidget('list')->insert ('end', 'Spell check complete.');
+    $cw->Subwidget('list')->insert('end', 'Spell check complete.');
     return 0;
 }
 
 
 sub misspelled_replace {
-    $cw->Subwidget ('replaceentry')->delete (0, 'end');
-    $cw->Subwidget ('replaceentry')->insert (0, gettextselection ());
+    $cw->Subwidget('replaceentry')->delete (0, 'end');
+    $cw->Subwidget('replaceentry')->insert(0, gettextselection());
 }
 
 sub gettextselection {
- return $cw->Subwidget('text')->get ($midx,"$midx+$matchlength chars");
+ return $cw->Subwidget('text')->get($midx,"$midx+$matchlength chars");
 }
 
 sub replace {
@@ -256,23 +305,21 @@ sub replace {
     my $replacement = $cw->Subwidget('replaceentry')->get;
     $cw->Subwidget('text')->insert('insert', $replacement);
     push @addlist, ($replacement);
-    $lastmatchindex = adjust_index 
-	(($cw->Subwidget('text')->index('insert')),$replacement);
+    $lastmatchindex = adjust_index(($cw->Subwidget('text')->index('insert')),$replacement);
     $cw->Subwidget('text')->markSet('insert',$lastmatchindex);
 }
 
 sub replaceall {
     $cw->Busy;
     my $lastindex = '1.0';
-    my $misspelled = gettextselection ();
-    my $replacement = $cw->Subwidget ('replaceentry')->get;
+    my $misspelled = gettextselection();
+    my $replacement = $cw->Subwidget('replaceentry')->get;
     while (1) {
-     $midx = ($cw->Subwidget('text')->search 
-       (-forwards, -count => \$mlength, $misspelled,$lastindex,'end'));
-     last unless length $midx;
-     $cw->Subwidget('text')->delete($midx, "$midx + $mlength chars");
-     $cw->Subwidget('text')->insert($midx, $replacement);
-     $lastindex = adjust_index ($midx,$replacement);
+        $midx = ($cw->Subwidget('text')->search(-forwards, -count => \$mlength, $misspelled,$lastindex,'end'));
+        last unless length $midx;
+        $cw->Subwidget('text')->delete($midx, "$midx + $mlength chars");
+        $cw->Subwidget('text')->insert($midx, $replacement);
+        $lastindex = adjust_index ($midx,$replacement);
     }
     push @addlist, ($replacement);
     $cw->Unbusy;
@@ -289,24 +336,27 @@ sub guesses {
 
 sub show_guesses {
     $cw->Subwidget('list')->delete (0, 'end');
-    my $misspelling = gettextselection ();
+    my $misspelling = gettextselection();
     my @wordguesses = grep /\& $misspelling/, @guesslist;
     if ($wordguesses[0]) {
-	$wordguesses[0] =~ s/.*\: //;
-	$cw->Subwidget('list')->insert ('end', $_) 
+        $wordguesses[0] =~ s/.*\: //;
+        $cw->Subwidget('list')->insert('end', $_) 
 	    foreach (split /, /, $wordguesses[0]);
     }
 }
 
 sub get_misspellings {
     return if ! $ifname;
-    $cw->Busy (-recurse => 1);
+    $cw->Busy(-recurse => 1);
     @misspelledlist = qx|"$ispell_prog" -l \<$ifname|;
-    if ($#misspelledlist >= 0) {chomp foreach (@misspelledlist);}
-    $cw->Unbusy (-recurse => 0);
+    if ($#misspelledlist >= 0) {
+        chomp foreach (@misspelledlist);
+    }
+    $cw->Unbusy(-recurse => 0);
 }
 
-mainwindow ();
+mainwindow();
+
 (($ifname=$ARGV[0]) && openfile()) if(defined $ARGV[0] and length $ARGV[0]);
 
 $cw->MainLoop;
