@@ -363,6 +363,8 @@ $cw->MainLoop;
 
 __DATA__
 
+=encoding utf-8
+
 =head1 NAME
 
 tkispell - Perl/Tk user interface for ispell.
@@ -419,13 +421,13 @@ environment variable is, "C," or is not set.
 
 =head1 COPYRIGHT
 
-Copyright © 2001-2004 Robert Kiesling, rkies@cpan.org.
+Copyright © 2001-2020 Robert Kiesling, rkies@cpan.org.
 
 Licensed under the same terms as Perl. Refer to the file, "Artistic."
 
 =head1 SEE ALSO
 
-perl(1), ispell(1), Tk(1)
+perl(1), ispell(1), aspell(1), L<Tk>
 
 =cut
 
