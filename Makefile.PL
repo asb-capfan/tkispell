@@ -10,8 +10,6 @@ if (($ispell_bin =~ /no ispell/) || (length($ispell_bin) == 0)) {
     exit 1;
 }
 
-WriteMakefile (NAME => 'Tk::SimpleFileSelect');
-
 WriteMakefile(AUTHOR => 'Robert Kiesling, rkies@cpan.org' ,
 	      NAME => 'tkispell',
 	      VERSION_FROM => 'tkispell',
