@@ -139,35 +139,35 @@ sub mainwindow {
 sub save_and_exit {
     $cw -> WmDeleteWindow if (defined ($ifname) && ! length ($ifname));
     if ($#misspelledlist >= 0) {
-	my $d = $cw -> Dialog (-title => 'Save File',
-           -text => "Save $ifname?\nOriginal file will be saved as $ifname.bak.", 
-           -bitmap => 'question', -font => $fn, -buttons => [qw/Yes No/], 
-           -default_button => 'Yes');
-	$d -> Subwidget ('B_Yes') -> configure (-font => $fn);
-	$d -> Subwidget ('B_No') -> configure (-font => $fn);
-	if (($d->Show) =~ /Yes/) {
-	    $cw -> Busy;
-        move($ifname, "$ifname.bak");
-	    open OUT, "+>>$ifname" or die "Couldn't overwrite old $ifname: $OS_ERROR\n";
-	    print OUT ($cw -> Subwidget ('text') -> get ('1.0', 'end'));
-	    close OUT;
-	    $cw -> Unbusy;
-	}
+        my $d = $cw -> Dialog (-title => 'Save File',
+               -text => "Save $ifname?\nOriginal file will be saved as $ifname.bak.", 
+               -bitmap => 'question', -font => $fn, -buttons => [qw/Yes No/], 
+               -default_button => 'Yes');
+        $d -> Subwidget ('B_Yes') -> configure (-font => $fn);
+        $d -> Subwidget ('B_No') -> configure (-font => $fn);
+        if (($d->Show) =~ /Yes/) {
+            $cw -> Busy;
+            move($ifname, "$ifname.bak");
+            open OUT, "+>>$ifname" or die "Couldn't overwrite old $ifname: $OS_ERROR\n";
+            print OUT ($cw -> Subwidget ('text') -> get ('1.0', 'end'));
+            close OUT;
+            $cw -> Unbusy;
+        }
     }
     if ($#addlist >= 0) {
-	$d = $cw -> Dialog (-title => 'Add Words',
-	    -text => 'Save new words to your personal dictionary?',
+        $d = $cw -> Dialog (-title => 'Add Words',
+            -text => 'Save new words to your personal dictionary?',
             -bitmap => 'question', -font => $fn,
-		-buttons => [qw/Yes No/], -default_button => 'Yes');
-	$d -> Subwidget ('B_Yes') -> configure (-font => $fn);
-	$d -> Subwidget ('B_No') -> configure (-font => $fn);
-	if (($d->Show) =~ /Yes/) {
-	  $cw -> Busy;
-	  open OUT, ">>$hdict" or  die "Couldn't add words to $hdict: $OS_ERROR\n";
-	  foreach (@addlist) { print OUT "$_\n"}
-	  close OUT;
-	  $cw -> Unbusy;
-      }
+            -buttons => [qw/Yes No/], -default_button => 'Yes');
+        $d -> Subwidget ('B_Yes') -> configure (-font => $fn);
+        $d -> Subwidget ('B_No') -> configure (-font => $fn);
+        if (($d->Show) =~ /Yes/) {
+            $cw -> Busy;
+            open OUT, ">>$hdict" or  die "Couldn't add words to $hdict: $OS_ERROR\n";
+            foreach (@addlist) { print OUT "$_\n"}
+            close OUT;
+            $cw -> Unbusy;
+        }
     }
     $cw -> WmDeleteWindow;
 }
