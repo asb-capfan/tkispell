@@ -1,5 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
+use strict;
+use warnings;
 use Tk;
 use Tk::widgets qw(Label Dialog SimpleFileSelect Balloon);
 use English qw'-no_match_vars';
@@ -52,7 +54,7 @@ if( !defined $ispell_prog or $ispell_prog eq '' ) {
 }
 
 
-my ($cw, $b1, @misspelledlist, @replacementlist, @addlist, $midx);
+my ($cw, $b1, @misspelledlist, @replacementlist, @addlist, @guesslist, $midx);
 my $ifname = '';
 my $lastmatchindex = '1.0';
 my $matchlength = 0;
@@ -314,6 +316,7 @@ sub replaceall {
     my $misspelled = gettextselection();
     my $replacement = $cw->Subwidget('replaceentry')->get;
     while (1) {
+        my $mlength = 0;
         $midx = ($cw->Subwidget('text')->search(-forwards, -count => \$mlength, $misspelled,$lastindex,'end'));
         last unless length $midx;
         $cw->Subwidget('text')->delete($midx, "$midx + $mlength chars");
