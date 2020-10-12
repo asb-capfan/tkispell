@@ -223,8 +223,7 @@ sub filenotfound {
 }
 
 sub selectfile {
-    my $d = $cw->SimpleFileSelect;
-    $ifname = $d->Show;
+    $ifname = $cw->getOpenFile();
     return filenotfound ($ifname) if (length $ifname and (not -f $ifname));
     openfile();
 }
