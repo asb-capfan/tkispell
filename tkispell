@@ -260,7 +260,7 @@ sub checkfirst {
     }
     guesses();
     my $term = $misspelledlist[0];
-    $midx = $cw->Subwidget('text')->search(-forwards, -count => \$matchlength, $term, $lastmatchindex);
+    $midx = $cw->Subwidget('text')->search('-forwards', -count => \$matchlength, $term, $lastmatchindex);
     $lastmatchindex = adjust_index ($midx, $term);
     addtexttags();
     show_guesses();
@@ -274,7 +274,7 @@ sub checknext {
         return 0;
     }
     (checknext() && return 1) if grep /$misspelledlist[$nextmiss]/, @addlist;
-    $midx = ($cw->Subwidget('text')->search (-forwards,-count=>\$matchlength, $misspelledlist[$nextmiss],$lastmatchindex,'end'));
+    $midx = ($cw->Subwidget('text')->search ('-forwards',-count=>\$matchlength, $misspelledlist[$nextmiss],$lastmatchindex,'end'));
     if ((defined $midx) && (length $midx)) {
         addtexttags();
         $lastmatchindex = adjust_index($midx,$misspelledlist[$nextmiss]);
@@ -317,7 +317,7 @@ sub replaceall {
     my $replacement = $cw->Subwidget('replaceentry')->get;
     while (1) {
         my $mlength = 0;
-        $midx = ($cw->Subwidget('text')->search(-forwards, -count => \$mlength, $misspelled,$lastindex,'end'));
+        $midx = ($cw->Subwidget('text')->search('-forwards', -count => \$mlength, $misspelled,$lastindex,'end'));
         last unless length $midx;
         $cw->Subwidget('text')->delete($midx, "$midx + $mlength chars");
         $cw->Subwidget('text')->insert($midx, $replacement);
