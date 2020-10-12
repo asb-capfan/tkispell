@@ -17,7 +17,6 @@ if( !defined $lang or $lang =~ /^C$/ ) {
     $lang = 'default';
 }
 
-#my $hdict = $ENV{HOME}."/.ispell_$lang"; # Personal dictionary. 
 my $hdict;
 my $ispell_prog;
 
