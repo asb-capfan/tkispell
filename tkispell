@@ -42,7 +42,7 @@ if( $OSNAME eq 'MSWin32' ) {
     
     # fallback: if no aspell is found, look for ispell
     if( !defined $ispell_prog or $ispell_prog eq '' ) {
-        $ispell_prog = `where ispell`;
+        $ispell_prog = `which ispell`;
         chomp $ispell_prog;
     }
 }
