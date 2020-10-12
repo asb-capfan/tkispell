@@ -7,7 +7,7 @@ use Tk::widgets qw(Label Dialog SimpleFileSelect Balloon);
 use English qw'-no_match_vars';
 use File::Copy;
 
-our $VERSION = 0.17;
+our $VERSION = 0.18;
 
 #
 # Default font - edit this for your system.
@@ -424,6 +424,8 @@ environment variable is, "C," or is not set.
 =head1 COPYRIGHT
 
 Copyright © 2001-2020 Robert Kiesling, rkies@cpan.org.
+
+Alexander Becker has served as a co-maintainer since version 0.17.
 
 Licensed under the same terms as Perl. Refer to the file, "Artistic."
 
