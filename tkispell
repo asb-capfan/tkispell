@@ -58,12 +58,12 @@ my $ifname = '';
 my $lastmatchindex = '1.0';
 my $matchlength = 0;
 my $nextmiss = 0;
-my $scriptname = $0;
+my $scriptname = $PROGRAM_NAME;
 
 sub mainwindow {
     $cw = Tk::MainWindow->new(-title => $scriptname);
     $b1 = $cw->Balloon();
-    @opts = (-padx => 5, -pady => 5);
+    my @opts = (-padx => 5, -pady => 5);
     
     my $cl = $cw->Scrolled('Text',
         -height => 3,
@@ -361,7 +361,7 @@ mainwindow();
 
 $cw->MainLoop;
 
-__DATA__;
+__DATA__
 
 =head1 NAME
 
