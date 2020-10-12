@@ -224,12 +224,12 @@ sub filenotfound {
 
 sub selectfile {
     $ifname = $cw->getOpenFile();
-    return filenotfound ($ifname) if (length $ifname and (not -f $ifname));
+    return filenotfound($ifname) if (length $ifname and (not -f $ifname));
     openfile();
 }
 
 sub openfile {
-    open IN, $ifname or (filenotfound ($ifname) && return);
+    open IN, $ifname or (filenotfound($ifname) && return);
     while( my $l = <IN> ){
         $cw->Subwidget('text')->insert('end',$l);
     }
