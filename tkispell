@@ -138,7 +138,8 @@ sub mainwindow {
         $e->delete (0,'end');
 		$e->insert(0, $lb->get($lb->curselection));
     });
-    $f2 = $cw->Frame(-container => 0);
+    
+    my $f2 = $cw->Frame(-container => 0);
     $f2->grid(-row => 5, -column => 1, -columnspan => 4, -sticky => 'ew');
     $b = $cw->Button(
         -text => 'Check...',
@@ -189,7 +190,7 @@ sub save_and_exit {
         }
     }
     if ($#addlist >= 0) {
-        $d = $cw->Dialog(
+        my $d = $cw->Dialog(
             -title => 'Add Words',
             -text => 'Save new words to your personal dictionary?',
             -bitmap => 'question',
@@ -415,10 +416,6 @@ Replace all occurrences of the misspelled word.
 Tkispell uses ispell's personal dictionary naming conventions:
 $HOME/.ispell_<language> or $HOME/.ispell_default if the $LANG
 environment variable is, "C," or is not set.
-
-=head1 REVISION INFO
-
-Id: tkispell,v 1.4 2004/02/27 01:37:16 kiesling Exp $
 
 =head1 COPYRIGHT
 
