@@ -170,7 +170,10 @@ sub mainwindow {
 }
 
 sub save_and_exit {
-    $cw->WmDeleteWindow if (defined ($ifname) && ! length ($ifname));
+    if (defined ($ifname) && ! length ($ifname)) {
+        $cw->WmDeleteWindow;
+        return;
+    }
     if ($#misspelledlist >= 0) {
         my $d = $cw->Dialog(
             -title => 'Save File',
