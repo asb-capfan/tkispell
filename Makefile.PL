@@ -6,21 +6,22 @@ my $ispell_bin = '';
 if( $OSNAME eq 'MSWin32' ) {
 
     # look for aspell first, as it the successor of ispell
-    $ispell_bin = `where aspell`;
+    chomp( $ispell_bin = `where aspell` );
     
     # fallback: if no aspell is found, look for ispell
     if( !defined $ispell_bin or $ispell_bin eq '' ) {
-        $ispell_bin = `where ispell`;
+        chomp( $ispell_bin = `where ispell` );
     }
     
 }else{
 
-    $ispell_bin = `which aspell`;
+    chomp( $ispell_bin = `which aspell` );
     
     # fallback: if no aspell is found, look for ispell
     if( !defined $ispell_bin or $ispell_bin eq '' ) {
-        $ispell_bin = `which ispell`;
+        chomp( $ispell_bin = `which ispell` );
     }
+    
 }
 
 # The first match is for Solaris which.  The second is for 
@@ -32,12 +33,15 @@ if( ($ispell_bin =~ /no ispell/) || (length($ispell_bin) == 0 || $ispell_bin !~ 
     exit(1);
 }
 
+print "We will use $ispell_bin for spelling\n";
 WriteMakefile(
     AUTHOR => 'Robert Kiesling, rkies@cpan.org' ,
-	NAME => 'tkispell',
-	VERSION_FROM => 'tkispell',
+	NAME => 'App::tkispell',
+	VERSION_FROM => 'lib/App/tkispell.pm',
 	EXE_FILES => ['tkispell'],
     PREREQ_PM => {
         'Tk' => 800.004,
+        'File::Copy' => 0,
+        'English' => 0,
     },
 );
