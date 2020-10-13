@@ -37,4 +37,7 @@ WriteMakefile(
 	NAME => 'tkispell',
 	VERSION_FROM => 'tkispell',
 	EXE_FILES => ['tkispell'],
+    PREREQ_PM => {
+        'Tk' => 800.004,
+    },
 );
