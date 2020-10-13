@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Tk;
-use Tk::widgets qw(Label Dialog SimpleFileSelect Balloon);
+use Tk::widgets qw(Label Dialog Balloon);
 use English qw'-no_match_vars';
 use File::Copy;
 
