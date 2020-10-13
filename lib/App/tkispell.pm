@@ -68,6 +68,7 @@ environment variable is, "C," or is not set.
 =head1 COPYRIGHT
 
 Copyright © 2001-2020 Robert Kiesling, rkies@cpan.org.
+Copyright © 2020 Robert Kiesling, rkies@cpan.org and Alexander Becker.
 
 Alexander Becker has served as a co-maintainer since version 0.17.
 
