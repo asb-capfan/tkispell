@@ -43,5 +43,8 @@ WriteMakefile(
         'Tk' => 800.004,
         'File::Copy' => 0,
         'English' => 0,
+        # XXX: move to TEST_REQUIRES + xt folder in future
+        'Test' => 0,
+        'Test::More' => 0,
     },
 );
